@@ -9,7 +9,7 @@
     "dev": "nodemon index.js"
   },
   "keywords": [],
-  "author": "Arpan Sarkar",
+  "author": "Soumyadip Mondal",
   "license": "ISC",
   "type": "module",
   "bin": {
