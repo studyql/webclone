@@ -3,12 +3,37 @@ import cors from 'cors';
 import archiver from 'archiver';
 import { scrapeWebsite } from './scraper.js';
 import { getAllLinks } from './getLinks.js';
+import { askLLM } from './llm.js';
 
 const app = express();
 const PORT = 3001;
 
 app.use(cors());
 app.use(express.json());
+
+app.post('/api/chat', async (req, res) => {
+  const { message } = req.body;
+
+  if (!message) {
+    return res.status(400).json({ error: 'Message is required' });
+  }
+
+  try {
+    const responses = [];
+    const result = await askLLM(message, (progress) => {
+      responses.push(progress);
+    });
+
+    res.json({
+      responses,
+      finalMessage: result.message,
+      url: result.url
+    });
+  } catch (error) {
+    console.error('Chat error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 app.post('/api/clone', async (req, res) => {
   const { url } = req.body;

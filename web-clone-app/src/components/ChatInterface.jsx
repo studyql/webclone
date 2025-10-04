@@ -39,25 +39,38 @@ function ChatInterface() {
     setIsProcessing(true);
 
     try {
-      const urlMatch = userInput.match(/https?:\/\/[^\s]+/);
-
-      if (!urlMatch) {
-        addMessage('assistant', 'Please provide a valid website URL (starting with http:// or https://)');
-        setIsProcessing(false);
-        return;
-      }
-
-      const url = urlMatch[0];
-      addMessage('assistant', `Starting to clone ${url}...`);
-
-      const result = await cloneWebsite(url, (status) => {
-        addMessage('assistant', status);
+      const chatResponse = await fetch('http://localhost:3001/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: userInput }),
       });
 
-      if (result.success) {
-        addMessage('assistant', `Successfully cloned ${result.fileCount} files! Click below to download.`, result.zipData);
+      if (!chatResponse.ok) {
+        const errorData = await chatResponse.json();
+        throw new Error(errorData.error || 'Failed to process message');
+      }
+
+      const chatData = await chatResponse.json();
+
+      for (const response of chatData.responses) {
+        addMessage('assistant', response);
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      if (chatData.url) {
+        const result = await cloneWebsite(chatData.url, (status) => {
+          addMessage('assistant', status);
+        });
+
+        if (result.success) {
+          addMessage('assistant', chatData.finalMessage, result.zipData);
+        } else {
+          addMessage('assistant', `Error: ${result.error}`);
+        }
       } else {
-        addMessage('assistant', `Error: ${result.error}`);
+        addMessage('assistant', chatData.finalMessage);
       }
     } catch (error) {
       addMessage('assistant', `An error occurred: ${error.message}`);
